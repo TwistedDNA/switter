@@ -4,10 +4,12 @@ import net.twisteddna.switter.Storage;
 import net.twisteddna.switter.swit.Swit;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class UserService {
@@ -28,31 +30,30 @@ public class UserService {
 
 
     public List<Swit> timeline(String username) {
-        User user = storage.findUserByUsername(username);
-        if (user == null) {
-            return Collections.EMPTY_LIST;
-        }
-        return user.getFollows().stream()
-                .flatMap(idol -> storage.findAllSwitsForUsername(idol.getUsername()).stream())
-                .sorted(Comparator.comparing(Swit::getPosted).reversed())
-                .collect(Collectors.toList());
+        List<Swit> swits = new ArrayList<>();
+        storage.findUserByUsername(username).ifPresent(
+                user -> user.getFollows().stream()
+                        .flatMap(findAllIdolsSwits())
+                        .sorted(Comparator.comparing(Swit::getPosted).reversed())
+                        .collect(Collectors.toCollection(() -> swits)));
+
+
+        return swits;
     }
 
-    public FollowResult follow(String follower, String idol) {
-        User followerUser = storage.findUserByUsername(follower);
-        if (followerUser == null) {
-            return new FollowResult("Follower user does not exist.");
-        }
-        User idolUser = storage.findUserByUsername(idol);
-        if (idolUser == null) {
-            return new FollowResult("Idol user does not exist.");
-        }
+    private Function<User, Stream<? extends Swit>> findAllIdolsSwits() {
+        return idol -> storage.findAllSwitsForUsername(idol.getUsername()).stream();
+    }
+
+
+    public void follow(String follower, String idol) throws UserNotFoundException {
+        User followerUser = storage.findUserByUsername(follower).orElseThrow(() -> new UserNotFoundException("Follower not found"));
+        User idolUser = storage.findUserByUsername(idol).orElseThrow(() -> new UserNotFoundException("Idol not found"));
         followerUser.addIdol(idolUser);
-        storage.saveUser(followerUser);
-        return FollowResult.SUCCESS;
+        storage.update(followerUser);
     }
 
     public boolean userExists(String username) {
-        return storage.findUserByUsername(username) != null;
+        return storage.findUserByUsername(username).isPresent();
     }
 }

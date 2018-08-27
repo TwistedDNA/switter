@@ -46,7 +46,7 @@ public class UserServiceTest {
 
     @Test
     public void shouldReturnEmptyListOnNonExistingUserTimelineRequest() {
-        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(null);
+        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(Optional.ofNullable(null));
         List<Swit> timeline = userService.timeline(EXAMPLE_USERNAME);
         assertEquals(0, timeline.size());
     }
@@ -63,7 +63,7 @@ public class UserServiceTest {
 
         User exampleUser = buildUserFollowingIdols();
 
-        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(exampleUser);
+        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(Optional.of(exampleUser));
 
         List<Swit> timeline = userService.timeline(EXAMPLE_USERNAME);
 
@@ -72,29 +72,26 @@ public class UserServiceTest {
         assertEquals(earlySwit, timeline.get(1));
     }
 
-    @Test
-    public void shouldReturnNotSuccessfulResultOnFollowerDoesNotExist(){
-        FollowResult followResult = userService.follow(null, null);
-        assertFalse(followResult.isSuccess());
+    @Test(expected = UserNotFoundException.class)
+    public void shouldThrowExceptionOnNonExistingFollower() throws UserNotFoundException {
+        userService.follow(null, null);
+    }
+    @Test(expected = UserNotFoundException.class)
+    public void shouldReturnNotSuccessfulResultOnIdolDoesNotExist() throws UserNotFoundException {
+        userService.follow(EXAMPLE_USERNAME, null);
     }
     @Test
-    public void shouldReturnNotSuccessfulResultOnIdolDoesNotExist(){
-        FollowResult followResult = userService.follow(EXAMPLE_USERNAME, null);
-        assertFalse(followResult.isSuccess());
-    }
-    @Test
-    public void shouldReturnSuccessfulResultOnFollowCall(){
+    public void shouldReturnSuccessfulResultOnFollowCall() throws UserNotFoundException {
         User follower = User.builder().username(EXAMPLE_USERNAME).follows(new ArrayList<>()).build();
         User idol = User.builder().username(EXAMPLE_USERNAME).follows(new ArrayList<>()).build();
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 
-        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(follower);
-        when(storage.findUserByUsername(IDOL_USERNAME)).thenReturn(idol);
+        when(storage.findUserByUsername(EXAMPLE_USERNAME)).thenReturn(Optional.of(follower));
+        when(storage.findUserByUsername(IDOL_USERNAME)).thenReturn(Optional.of(idol));
 
-        FollowResult followResult = userService.follow(EXAMPLE_USERNAME, IDOL_USERNAME);
+        userService.follow(EXAMPLE_USERNAME, IDOL_USERNAME);
 
-        assertTrue(followResult.isSuccess());
-        verify(storage).saveUser(captor.capture());
+        verify(storage).update(captor.capture());
         assertEquals(idol, captor.getValue().getFollows().get(0));
     }
 

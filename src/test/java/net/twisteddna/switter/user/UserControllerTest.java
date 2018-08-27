@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -68,8 +70,8 @@ public class UserControllerTest {
     }
 
     @Test
-    public void followRequestShouldReturnBadRequestOnNonExistingUser() {
-        when(userService.follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME)).thenReturn(new FollowResult(ERROR_MESSAGE));
+    public void followRequestShouldReturnBadRequestOnNonExistingUser() throws UserNotFoundException {
+        doThrow(new UserNotFoundException(ERROR_MESSAGE)).when(userService).follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME);
         ResponseEntity result = userController.follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertEquals(ERROR_MESSAGE, result.getBody().toString());
@@ -77,8 +79,8 @@ public class UserControllerTest {
     }
 
     @Test
-    public void followRequestShouldReturnOkOnCorrectUser() {
-        when(userService.follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME)).thenReturn(FollowResult.SUCCESS);
+    public void followRequestShouldReturnOkOnCorrectUser() throws UserNotFoundException {
+        doNothing().when(userService).follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME);
         ResponseEntity result = userController.follow(EXAMPLE_USERNAME, EXAMPLE_USERNAME);
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }

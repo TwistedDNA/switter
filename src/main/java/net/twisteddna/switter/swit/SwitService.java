@@ -1,8 +1,6 @@
 package net.twisteddna.switter.swit;
 
 import net.twisteddna.switter.Storage;
-import net.twisteddna.switter.swit.Swit;
-import net.twisteddna.switter.user.User;
 import org.springframework.stereotype.Component;
 
 
@@ -17,8 +15,8 @@ public class SwitService {
 
     public void postASwit(Swit swit) {
         String author = swit.getAuthorUsername();
-        if (storage.findUserByUsername(author) == null) {
-            storage.saveUser(new User(author));
+        if (!storage.findUserByUsername(author).isPresent()) {
+            storage.createUser(author);
         }
         storage.addSwit(swit);
     }

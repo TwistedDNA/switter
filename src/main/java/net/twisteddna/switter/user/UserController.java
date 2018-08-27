@@ -31,9 +31,10 @@ public class UserController {
 
     @PostMapping("/{follower}/follow/{idol}")
     public ResponseEntity follow(@PathVariable String follower, @PathVariable String idol) {
-        FollowResult result = userService.follow(follower, idol);
-        if (!result.isSuccess()) {
-            return ResponseEntity.badRequest().body(result.getErrorMessage());
+        try {
+            userService.follow(follower, idol);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
         return ResponseEntity.ok().build();
     }
